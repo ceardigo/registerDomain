@@ -1,0 +1,38 @@
+version: '3'
+services:
+  jaeger:
+    build: .
+    container_name: jaeger
+    labels:
+      - registerDomain
+    environment:
+      - COLLECTOR_ZIPKIN_HTTP_PORT=9411
+      - TZ=America/Sao_Paulo
+    image:  jaegertracing/all-in-one:1.13.1
+    ports:
+      - "5775:5775/udp"
+      - "6831:6831/udp"
+      - "6832:6832/udp"
+      - "5778:5778"
+      - "16686:16686"
+      - "14268:14268"
+      - "9411:9411"
+  user-db:
+    build: .
+    container_name: user-db
+    labels:
+      - registerDomain
+    environment:
+      - MYSQL_ROOT_PASSWORD=mysqlpassword
+      - MYSQL_PASSWORD=userdbpwd
+      - MYSQL_USER=userdb
+      - MYSQL_DATABASE=user
+      - TZ=America/Sao_Paulo
+    image: mysql:8
+    command:
+      --default-authentication-plugin=mysql_native_password
+    ports:
+      - "3307:3306"
+    volumes:
+      - ./init_userdb.sql:/docker-entrypoint-initdb.d/init_userdb.sql
+
