@@ -5,24 +5,26 @@ import br.com.registerdomain.usersvc.address.model.AddressStatus;
 import br.com.registerdomain.usersvc.address.service.AddressService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
 import javax.validation.constraints.Min;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/address")
+@RequestMapping("/addresses")
 @Validated
 public class AddressApi {
 
+    private final AddressService addressService;
+
     @Autowired
-    private AddressService addressService;
+    public AddressApi(AddressService addressService) {
+        this.addressService = addressService;
+    }
 
     /**
      * Get specific address
@@ -32,8 +34,8 @@ public class AddressApi {
      */
     @GetMapping("/{id}")
     @ResponseStatus(HttpStatus.OK)
-    public Address getAddressById(@PathVariable("id") @Min(value = 1) int idAddress){
-        return this.addressService.retrieveAddressById(idAddress);
+    public AddressResource getAddressById(@PathVariable("id") @Min(value = 1) int idAddress){
+        return new AddressResource(this.addressService.retrieveAddressById(idAddress));
     }
 
     /**
@@ -43,25 +45,28 @@ public class AddressApi {
      * @param addressStatus - If populated, will filter the results
      * @return List<Address>
      */
-    @GetMapping(path = "/user/{id}", produces = "application/json")
+    @GetMapping(path = "/users/{id}", produces = "application/json")
     @ResponseStatus(HttpStatus.OK)
-    public List<Address> getAllAddressByUserId(@PathVariable("id") @Min(value = 1) int userId, @RequestParam(value = "status", required = false) AddressStatus addressStatus) {
-        return filterAddressResponse(this.addressService.retriveAllAddressesByUserId(userId), addressStatus);
+    public List<AddressResource> getAllAddressByUserId(@PathVariable("id") @Min(value = 1) int userId, @RequestParam(value = "status", required = false) AddressStatus addressStatus) {
+        List<Address> listAddresses = filterAddressResponse(this.addressService.retriveAllAddressesByUserId(userId), addressStatus);
+
+        return listAddresses
+                .stream()
+                .map(AddressResource::new)
+                .collect(Collectors.toList());
     }
 
 
     @PostMapping(consumes = "application/json", produces = "application/json")
     @ResponseStatus(HttpStatus.CREATED)
-    public CreateAddressResponseParam createNewAddress(@RequestBody @Valid CreateAddressRequestParam[] createAddressRequestParam) {
+    public void createNewAddress(@RequestBody @Valid CreateAddressRequestParam[] createAddressRequestParam) {
 
 
-        List listAddresses = Arrays.stream(createAddressRequestParam)
-                .map(a -> Address.of(a))
+        List<Address> listAddresses = Arrays.stream(createAddressRequestParam)
+                .map(Address::of)
                 .collect(Collectors.toList());
 
-
-        int addressId = this.addressService.createAddress(listAddresses);
-        return new CreateAddressResponseParam(1);
+        this.addressService.createAddress(listAddresses);
     }
 
 
@@ -78,7 +83,7 @@ public class AddressApi {
         }
 
         return listAddress.stream()
-                .filter(a -> a.getStatus() == addressStatus)
+                .filter(address -> address.getStatus() == addressStatus)
                 .collect(Collectors.toList());
     }
 

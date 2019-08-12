@@ -57,10 +57,6 @@ public class Address {
         return id;
     }
 
-    public void setId(int id) {
-        this.id = id;
-    }
-
     public int getUserId() {
         return userId;
     }
@@ -135,10 +131,6 @@ public class Address {
 
     public LocalDateTime getDateUpdated() {
         return dateUpdated;
-    }
-
-    public void setDateUpdated(LocalDateTime dateUpdated) {
-        this.dateUpdated = dateUpdated;
     }
 
     @Override

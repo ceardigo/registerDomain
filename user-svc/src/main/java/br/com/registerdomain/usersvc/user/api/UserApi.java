@@ -2,9 +2,8 @@ package br.com.registerdomain.usersvc.user.api;
 
 import br.com.registerdomain.usersvc.user.model.User;
 import br.com.registerdomain.usersvc.user.service.UserService;
+import io.micrometer.core.annotation.Timed;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.hateoas.Link;
-import org.springframework.hateoas.server.mvc.WebMvcLinkBuilder;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -12,14 +11,19 @@ import org.springframework.web.bind.annotation.*;
 import javax.validation.Valid;
 import javax.validation.constraints.Min;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/user")
+@RequestMapping("/users")
 @Validated
 public class UserApi {
 
+    private final UserService userService;
+
     @Autowired
-    private UserService userService;
+    public UserApi(UserService userService) {
+        this.userService = userService;
+    }
 
     /**
      * Get all users
@@ -28,8 +32,12 @@ public class UserApi {
      */
     @GetMapping(produces = "application/json")
     @ResponseStatus(HttpStatus.OK)
-    public List<User> getAllUsers() {
-        return this.userService.listUsers();
+    @Timed("GetUsers")
+    public List<UserResource> getAllUsers() {
+        return this.userService.listUsers()
+                .stream()
+                .map(UserResource::new)
+                .collect(Collectors.toList());
 
     }
 
@@ -41,12 +49,9 @@ public class UserApi {
      */
     @GetMapping(path = "/{id}", produces = {"application/json"})
     @ResponseStatus(HttpStatus.OK)
+    @Timed("GetSpecificUser")
     public UserResource getUserById(@PathVariable("id") @Min(value = 1) int userId) {
-        UserResource userResource = new UserResource(this.userService.retrieveUserById(userId));
-        userResource.add(WebMvcLinkBuilder.linkTo(UserApi.class).slash(userId).withSelfRel());
-
-        //return this.userService.retrieveUserById(userId);
-        return userResource;
+        return new UserResource(this.userService.retrieveUserById(userId));
     }
 
     /**
@@ -57,6 +62,7 @@ public class UserApi {
      */
     @PostMapping(consumes = "application/json", produces = "application/json")
     @ResponseStatus(HttpStatus.CREATED)
+    @Timed("CreateUsers")
     public CreateUserResponseParam createNewUser(@Valid @RequestBody CreateUserRequestParam createUserRequestParam) {
         int id = this.userService.createUser(User.of(createUserRequestParam));
         return new CreateUserResponseParam(id);
